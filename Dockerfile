@@ -2,12 +2,12 @@
 FROM rust:1.64-slim-bullseye as builder
 
 # Add Google Protocol Buffers for Libra's metrics library.
-ENV PROTOC_VERSION 3.8.0
-ENV PROTOC_ZIP protoc-$PROTOC_VERSION-linux-x86_64.zip
+ENV PROTOC_VERSION=3.8.0
+ENV PROTOC_ZIP=protoc-$PROTOC_VERSION-linux-x86_64.zip
 
 RUN set -x \
  && apt update \
- && apt install -y \
+ && apt install -y --no-install-recommends \
       clang \
       cmake \
       libudev-dev \
@@ -17,6 +17,8 @@ RUN set -x \
       pkg-config \
       zlib1g-dev \
       curl \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/* \
  && rustup component add rustfmt \
  && rustup component add clippy \
  && rustc --version \
@@ -26,16 +28,12 @@ RUN set -x \
  && unzip -o $PROTOC_ZIP -d /usr/local include/* \
  && rm -f $PROTOC_ZIP
 
-ENV HOME=/home/root
-WORKDIR $HOME/app
+WORKDIR /home/root/app
 COPY . .
+#Maybe used for application?
 RUN mkdir -p docker-output
 
-ARG ci_commit
-# NOTE: Keep this here before build since variable is referenced during CI build step.
-ENV CI_COMMIT=$ci_commit
-
-ARG debug
+ARG debug=false
 
 # cache these directories for reuse
 # see: https://docs.docker.com/build/cache/#use-the-dedicated-run-cache
@@ -46,10 +44,13 @@ RUN --mount=type=cache,mode=0777,target=/home/root/app/target \
         ./cargo stable build --release && cp target/release/jito-* ./; \
     else \
          RUSTFLAGS='-g -C force-frame-pointers=yes' ./cargo stable build --release && cp target/release/jito-* ./; \
-    fi
+    fi 
 
 FROM debian:bullseye-slim as jito-transaction-relayer
-RUN apt-get -qq update && apt-get -qq -y install ca-certificates libssl1.1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \ 
+ && apt-get -y install ca-certificates libssl1.1 \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY --from=builder /home/root/app/jito-transaction-relayer ./

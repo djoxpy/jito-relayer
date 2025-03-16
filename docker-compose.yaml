@@ -2,7 +2,7 @@
 version: "3.8"
 services:
   transaction_relayer:
-    image: $ORG/jito-transaction-relayer:$TAG
+    image: jito-transaction-relayer
     container_name: jito-transaction-relayer
     build:
       context: .
@@ -11,7 +11,8 @@ services:
     environment:
       - RUST_LOG=info
       - KEYPAIR_PATH=/etc/solana/id.json
-      - PUBLIC_IP=127.0.0.1
+      # - PUBLIC_IP=127.0.0.1
+      - PUBLIC_IP=172.17.0.1
       - TPU_BIND_IP=0.0.0.0
       - TPU_QUIC_PORT=10006
       - NUM_TPU_QUIC_SERVERS=10
