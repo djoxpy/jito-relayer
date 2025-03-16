@@ -1,0 +1,37 @@
+name: Build and Release Binary
+
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+    tags:
+      - v*
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      # with:
+      #   submodules: true
+    
+    - name: Checkout repository submodules
+      run: git submodule update --init --recursive
+
+    - name: Build binary
+      run: docker build --progress=plain --target builder --output type=local,dest=./build .
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: ./build/home/root/app/jito-transaction-relayer
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
